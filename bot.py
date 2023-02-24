@@ -20,13 +20,18 @@ HEIGHT = int(os.getenv('HEIGHT', '512')) #MAKE SURE HEIGHT & WIDHT ARE BOTH MULT
 WIDTH = int(os.getenv('WIDTH', '512')) #GOING BELOW 512 IN SOME OF THEM MIGHT RESULT IN LOWER QUAILITY IMAGE
 NUM_INFERENCE_STEPS = int(os.getenv('NUM_INFERENCE_STEPS', '50')) #GOOD QUALITY WITH 50 (20 TO TESTING PROMPTS)
 GUIDANCE_SCALE = float(os.getenv('GUIDANCE_SCALE', '7.5'))
-BLACKLISTED_WORDS = ["child", "baby", "babypussy","naked child","naked baby","underage","childtits","child porn","baby porn","underage porn","babys","childs","under18", "young","years","kid","kids","under 18","teengirl","teenboy","babyboy","babygirl","underaged","pedophile","schoolboy","schoolgirl","pedo",]
+BLACKLISTED_WORDS = ["child","Toddler","toddler","Toddlers","toddlers","Kiddie","Kiddies","Family","family","families","Families","kiddie","kiddies","Teeny","teeny","Teenys","teenys","Teenies","Teenies","Child","Childs","Baby", "baby","yeare","oldere","Year","Old", "babypussy","Girl","Girls","Boy","Boys","naked child","naked baby","underage","childtits","child porn","baby porn","underage porn","babys","childs","under18", "young","Young","years","Years","kid","kids","Kid","Kids","under 18","teengirl","teenboy","babyboy","babygirl","newborn","Newborn","Schoolchild","schoolchild","teener","Teener","bambino","Bambino","underaged","pedophile","schoolboy","schoolgirl","Youngster","youngster","youngling","Younglings","juvenile","juveniles","Juvenile","pedo","teen","Teen","girl","boy","Adolf Hitler","adolf hitler","AdolfHitler","1","2","5","6","7","8","9","10","11","12","13","14","15","16","17","18","one","two","three","four","five","six","seven","eight","nine","ten","eleven","twelve","thirteen","fourteen","fifteen","sixteen","seventeen","eighteen","parents","parents",]
 
 
 #revision = "fp16" if LOW_VRAM_MODE else None
 revision = None
 torch_dtype = torch.float32 
 vae = AutoencoderKL.from_pretrained("stabilityai/sd-vae-ft-mse")
+
+link = "@VenusAi_bsc"
+text = "Join our Telegram here."
+
+hyperlink = f'Join our Telegram here {link}'
 
 # load the text2img pipeline
 pipe = StableDiffusionPipeline.from_pretrained(MODEL_DATA, revision=revision, torch_dtype=torch_dtype, use_auth_token=USE_AUTH_TOKEN, vae=vae)
@@ -111,10 +116,11 @@ async def generate_and_send_photo(update: Update, context: ContextTypes.DEFAULT_
     for word in blacklisted_words:
         if word in update.message.text:
             return await update.message.reply_text("Your prompt contains restricted words. Don't do anything illegal! ", reply_to_message_id=update.message.message_id)
+    
     progress_msg = await update.message.reply_text("Generating image...", reply_to_message_id=update.message.message_id)
     im, seed = generate_image(prompt=update.message.text)
     await context.bot.delete_message(chat_id=progress_msg.chat_id, message_id=progress_msg.message_id)
-    await context.bot.send_photo(update.effective_user.id, image_to_bytes(im), caption=f'"{update.message.text}" (Seed: {seed})' +  "\n\n\n\n*DISCLAIMER: Beta Version, bugs & overload expected, Let us know and its being worked on immediately. On failure, try again for a different result!* " , reply_markup=get_try_again_markup(), reply_to_message_id=update.message.message_id)
+    await context.bot.send_photo(update.effective_chat.id, image_to_bytes(im), caption=f'"{update.message.text}" (Seed: {seed})' + "\n\n" + hyperlink + "\n\n\n\n*DISCLAIMER: VENUSAI-generated images are the product of an artificial intelligence. The user takes the responsibility to ensure that the generated images do not infringe on any intellectual property rights, privacy rights, any other rights, illegal stuff, harmful, offensive, or inappropriate. The creators of the VENUSAI Bot cannot be held responsible for any misuse! \n\nBeta Version, bugs & overload expected.* " , reply_markup=get_try_again_markup(), reply_to_message_id=update.message.message_id)
 
 async def generate_and_send_photo_from_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if update.message.caption is None:
@@ -125,7 +131,7 @@ async def generate_and_send_photo_from_photo(update: Update, context: ContextTyp
     photo = await photo_file.download_as_bytearray()
     im, seed = generate_image(prompt=update.message.caption, photo=photo)
     await context.bot.delete_message(chat_id=progress_msg.chat_id, message_id=progress_msg.message_id)
-    await context.bot.send_photo(update.effective_user.id, image_to_bytes(im), caption=f'"{update.message.caption}" (Seed: {seed})', reply_markup=get_try_again_markup(), reply_to_message_id=update.message.message_id)
+    await context.bot.send_photo(update.effective_chat.id, image_to_bytes(im), caption=f'"{update.message.caption}" (Seed: {seed})', reply_markup=get_try_again_markup(), reply_to_message_id=update.message.message_id)
 
 
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -150,16 +156,16 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         prompt = replied_message.text if replied_message.text is not None else replied_message.caption
         im, seed = generate_image(prompt, photo=photo)
     await context.bot.delete_message(chat_id=progress_msg.chat_id, message_id=progress_msg.message_id)
-    await context.bot.send_photo(update.effective_user.id, image_to_bytes(im), caption=f'"{prompt}" (Seed: {seed})', reply_markup=get_try_again_markup(), reply_to_message_id=replied_message.message_id)
+    await context.bot.send_photo(update.effective_chat.id, image_to_bytes(im), caption=f'"{prompt}" (Seed: {seed})', reply_markup=get_try_again_markup(), reply_to_message_id=replied_message.message_id)
 
 
 
 app = ApplicationBuilder().token(TG_TOKEN).build()
 
+app.add_handler(CommandHandler('generateimg', generate_and_send_photo_from_photo))
 app.add_handler(CommandHandler('generate', generate_and_send_photo))
 app.add_handler(CommandHandler('start', start))
 app.add_handler(CommandHandler('help', help))
-app.add_handler(MessageHandler(filters.PHOTO, generate_and_send_photo_from_photo))
 app.add_handler(CallbackQueryHandler(button))
 
 app.run_polling()
